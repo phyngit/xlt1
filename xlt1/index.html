@@ -642,12 +642,12 @@ function _emailReport() {
   var subject = encodeURIComponent(testerName + ' - ' + TEST_NAME);
 
   var rawBody =
-    '<pre>' +
+    '<pre>\n' +
     'Phyn Water Test Report\n' +
     'Conducted by: ' + testerName + '\n\n' +
     'Copy the data below and save as a .csv file:\n\n' +
     csv +
-    '</pre>';
+    '\n</pre>';
 
   var body = encodeURIComponent(rawBody);
 
