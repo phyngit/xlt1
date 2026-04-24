@@ -631,14 +631,28 @@ function _emailReport() {
     '',
     '"Room","Test","Start Time","Turned Off","Duration (m:ss)"'
   ];
+
   results.forEach(function(r){
     var dur = r.end ? mmss(Math.round((r.end-r.start)/1000)) : '';
     lines.push('"'+r.room+'","'+r.t.name+'","'+_hhmmss(r.start)+'","'+(r.end?_hhmmss(r.end):'')+'","'+dur+'"');
   });
+
   var csv = lines.join('\n');
+
   var subject = encodeURIComponent(testerName + ' - ' + TEST_NAME);
-  var body = encodeURIComponent('Phyn Water Test Report\nConducted by: ' + testerName + '\n\nCopy the data below and save as a .csv file:\n\n' + csv);
-  window.location.href = 'mailto:Volunteers_Data@phyn.com?subject=' + subject + '&body=' + body;
+
+  var rawBody =
+    '<pre>' +
+    'Phyn Water Test Report\n' +
+    'Conducted by: ' + testerName + '\n\n' +
+    'Copy the data below and save as a .csv file:\n\n' +
+    csv +
+    '</pre>';
+
+  var body = encodeURIComponent(rawBody);
+
+  window.location.href =
+    'mailto:Volunteers_Data@phyn.com?subject=' + subject + '&body=' + body;
 }
 
 // ─── RESTART ──────────────────────────────────────────────────────────────────
