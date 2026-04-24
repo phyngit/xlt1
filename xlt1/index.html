@@ -87,6 +87,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .complete-badge strong{font-size:15px;display:block;margin-bottom:2px}
 @keyframes alarm-pulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(0,168,107,.4)}50%{transform:scale(1.02);box-shadow:0 0 0 12px rgba(0,168,107,0)}}
 .alarm-pulse{animation:alarm-pulse .7s ease-in-out 6}
+/* compact wait card */
+.wait-card-compact{background:var(--wait-light);border:1.5px solid #c8b0ee;border-radius:var(--radius-sm);padding:12px 16px;display:flex;flex-direction:column;transition:background .4s,border-color .4s}
+.wait-compact-inner{display:flex;align-items:center;gap:10px}
+.wait-icon-sm{font-size:20px;flex-shrink:0}
+.wait-compact-text{flex:1;font-size:13px;color:#5a3a9a;font-weight:600}
+
 </style>
 </head>
 <body>
@@ -123,53 +129,54 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 </div>
 <script>
-// ─── DATA ────────────────────────────────────────────────────────────
-// flush:true  = toilet flush (no countdown, "Tank Refilled" button)
-// noOffBtn:true = skip "Water is Off" button (flush tests only)
-// newRoom:true  = prompt for next room after this test
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+// instr fields use {room} as a placeholder — replaced at render time with the
+// actual room name the user provided.
+// A closing prompt "Tap [btn] once you&#39;ve turned it on." is appended automatically.
 var TESTS = [
   {id:'b1_low',  room:0, name:'Sink - Low Flow',     icon:'&#x1F6BF;',
-   instr:'Go to the bathroom sink. Turn on the <strong>cold water faucet</strong> and set it to the <strong>lowest possible flow</strong> &mdash; just a continuous drip or trickle.',
+   instr:'Head to the {room} sink. Turn the <strong>cold water faucet</strong> to the <strong>lowest possible flow</strong> &mdash; just a continuous drip or trickle.',
    btn:'Faucet Turned On', dur:5, wait:5,
    offMsg:'Turn the <strong>faucet fully off</strong>, then wait before the next test.'},
   {id:'b1_med',  room:0, name:'Sink - Medium Flow',  icon:'&#x1F6BF;',
-   instr:'Turn on the bathroom sink&#39;s <strong>cold water faucet</strong> at a <strong>medium flow level</strong>.',
+   instr:'At the {room} sink, turn the <strong>cold water faucet</strong> to a <strong>medium flow level</strong>.',
    btn:'Faucet Turned On', dur:5, wait:5,
    offMsg:'Turn the <strong>faucet fully off</strong>, then wait before the next test.'},
   {id:'b1_max',  room:0, name:'Sink - Maximum Flow', icon:'&#x1F6BF;',
-   instr:'Turn on the bathroom sink&#39;s <strong>cold water faucet</strong> at the <strong>maximum flow level</strong>.',
+   instr:'At the {room} sink, turn the <strong>cold water faucet</strong> to <strong>maximum flow</strong>.',
    btn:'Faucet Turned On', dur:5, wait:5,
    offMsg:'Turn the <strong>faucet fully off</strong>, then wait before the next test.'},
   {id:'b1_flush',room:0, name:'Toilet Flush',        icon:'&#x1F6BD;', flush:true, noOffBtn:true, newRoom:true,
-   instr:'Flush the <strong>bathroom toilet</strong> once and wait for the tank to fully refill.',
+   instr:'Flush the <strong>{room} toilet</strong> once, then wait for the tank to fully refill.',
    btn:'Toilet Flushed', dur:0, wait:5,
    offMsg:''},
   {id:'b2_low',  room:1, name:'Sink - Low Flow',     icon:'&#x1F6BF;',
-   instr:'In this bathroom, turn on the <strong>cold water faucet</strong> at the <strong>lowest continuous drip or trickle</strong>.',
+   instr:'At the {room} sink, turn the <strong>cold water faucet</strong> to the <strong>lowest continuous drip or trickle</strong>.',
    btn:'Faucet Turned On', dur:5, wait:5,
    offMsg:'Turn the <strong>faucet fully off</strong>, then wait before the next test.'},
   {id:'b2_med',  room:1, name:'Sink - Medium Flow',  icon:'&#x1F6BF;',
-   instr:'Turn on the sink&#39;s <strong>cold water faucet</strong> at a <strong>medium flow level</strong>.',
+   instr:'At the {room} sink, turn the <strong>cold water faucet</strong> to a <strong>medium flow level</strong>.',
    btn:'Faucet Turned On', dur:5, wait:5,
    offMsg:'Turn the <strong>faucet fully off</strong>, then wait before the next test.'},
   {id:'b2_max',  room:1, name:'Sink - Maximum Flow', icon:'&#x1F6BF;',
-   instr:'Turn on the sink&#39;s <strong>cold water faucet</strong> at <strong>maximum flow</strong>.',
+   instr:'At the {room} sink, turn the <strong>cold water faucet</strong> to <strong>maximum flow</strong>.',
    btn:'Faucet Turned On', dur:5, wait:5,
    offMsg:'Turn the <strong>faucet fully off</strong>, then wait before the next test.'},
   {id:'b2_flush',room:1, name:'Toilet Flush',        icon:'&#x1F6BD;', flush:true, noOffBtn:true,
-   instr:'Flush the <strong>bathroom toilet</strong> once and wait for the tank to fully refill.',
+   instr:'Flush the <strong>{room} toilet</strong> once, then wait for the tank to fully refill.',
    btn:'Toilet Flushed', dur:0, wait:5,
    offMsg:''},
   {id:'tub',     room:1, name:'Tub / Shower',        icon:'&#x1F6C1;', newRoom:true,
-   instr:'Turn on the <strong>tub filler or shower</strong> cold water <strong>fully</strong>.',
+   instr:'In the {room}, turn on the <strong>tub filler or shower</strong> cold water <strong>fully</strong>.',
    btn:'Water Turned On', dur:5, wait:5,
    offMsg:'Turn the <strong>water fully off</strong>, then wait before the next test.'},
   {id:'kitchen', room:2, name:'Kitchen Sink - Low Flow', icon:'&#x1F373;', last:true,
-   instr:'Go to the kitchen. Open the <strong>kitchen sink faucet</strong> at the <strong>lowest continuous dripping level</strong>.',
+   instr:'At the {room} sink, open the <strong>cold water faucet</strong> to the <strong>lowest continuous dripping level</strong>.',
    btn:'Faucet Turned On', dur:5, wait:0,
    offMsg:'Turn the <strong>faucet fully off</strong>.'}
 ];
 
+// ─── STATE ────────────────────────────────────────────────────────────────────
 var testerName = '';
 var rooms = ['','','Kitchen'];
 var idx = 0;
@@ -185,11 +192,11 @@ function _killTimers() {
   if (_cIv !== null) { clearInterval(_cIv); _cIv = null; }
 }
 
+// ─── CLOCK ────────────────────────────────────────────────────────────────────
 function _hhmmss(d) {
   return [d.getHours(),d.getMinutes(),d.getSeconds()]
     .map(function(n){ return String(n).padStart(2,'0'); }).join(':');
 }
-
 setInterval(function() {
   var t = _hhmmss(new Date());
   ['clock-welcome','clock-room','clock-test','clock-report'].forEach(function(id) {
@@ -198,35 +205,37 @@ setInterval(function() {
   });
 }, 1000);
 
+// ─── SAFE DOM ─────────────────────────────────────────────────────────────────
 function $e(id)    { return document.getElementById(id); }
 function $t(id,v)  { var e=$e(id); if(e) e.textContent=v; }
+function $h(id,v)  { var e=$e(id); if(e) e.innerHTML=v; }
 function $show(id) { var e=$e(id); if(e) e.style.display='block'; }
 function $hide(id) { var e=$e(id); if(e) e.style.display='none'; }
 function $add(id,c){ var e=$e(id); if(e) e.classList.add(c); }
 function $rem(id,c){ var e=$e(id); if(e) e.classList.remove(c); }
 function mmss(s)   { s=Math.max(0,s); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 
+// ─── SCREENS ──────────────────────────────────────────────────────────────────
 function _screen(id) {
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
   var el=$e(id); if(el) el.classList.add('active');
   window.scrollTo(0,0);
 }
 
-// ─── NAV DRAWER ──────────────────────────────────────────────────────
+// ─── NAV DRAWER ───────────────────────────────────────────────────────────────
 function _openNav() {
   var ov = document.createElement('div');
   ov.id = 'nav-overlay';
   ov.style.cssText = 'position:fixed;inset:0;z-index:300;display:flex';
-  var backdrop = '<div style="flex:1;background:rgba(0,0,0,.4)" onclick="_closeNav()"></div>';
   var items = '';
   TESTS.forEach(function(t, i) {
-    var done    = results[i] && results[i].end;
-    var active  = (i === idx);
-    var bg      = active  ? '#0066cc' : (done ? '#e0f7ef' : '#fff');
-    var col     = active  ? '#fff'    : (done ? '#004422' : '#1a2a3a');
-    var border  = active  ? 'none'    : '1px solid #d0dce8';
-    var check   = done    ? '&#x2705; ' : (active ? '&#x25B6; ' : '');
-    var room    = rooms[t.room] ? '<span style="font-size:11px;opacity:.6;display:block">'+rooms[t.room]+'</span>' : '';
+    var done   = results[i] && results[i].end;
+    var active = (i === idx);
+    var bg     = active ? '#0066cc' : (done ? '#e0f7ef' : '#fff');
+    var col    = active ? '#fff'    : (done ? '#004422' : '#1a2a3a');
+    var border = active ? 'none'    : '1px solid #d0dce8';
+    var check  = done ? '&#x2705; ' : (active ? '&#x25B6; ' : '');
+    var room   = rooms[t.room] ? '<span style="font-size:11px;opacity:.6;display:block">'+rooms[t.room]+'</span>' : '';
     items +=
       '<div onclick="_jumpTo('+i+')" style="padding:12px 16px;background:'+bg+';color:'+col+';border-bottom:'+border+';cursor:pointer;display:flex;align-items:center;gap:10px">' +
         '<span>'+t.icon+'</span>' +
@@ -241,31 +250,26 @@ function _openNav() {
       '</div>' +
       items +
     '</div>';
-  ov.innerHTML = backdrop + panel;
+  ov.innerHTML = '<div style="flex:1;background:rgba(0,0,0,.4)" onclick="_closeNav()"></div>' + panel;
   document.body.appendChild(ov);
 }
+function _closeNav() { var ov=$e('nav-overlay'); if(ov) ov.remove(); }
+function _jumpTo(i) { _closeNav(); _killTimers(); idx=i; _screen('screen-test'); _renderTest(); }
 
-function _closeNav() {
-  var ov = $e('nav-overlay');
-  if (ov) ov.remove();
-}
-
-function _jumpTo(i) {
-  _closeNav();
-  _killTimers();
-  idx = i;
-  _screen('screen-test');
-  _renderTest();
-}
-
-// ─── WELCOME ─────────────────────────────────────────────────────────
+// ─── WELCOME ──────────────────────────────────────────────────────────────────
 $e('tester-name').addEventListener('input', function(){ $e('btn-start-welcome').disabled=!this.value.trim(); });
 function goToRoomSetup(){ testerName=$e('tester-name').value.trim(); _screen('screen-room'); }
 
 $e('room-name').addEventListener('input', function(){ $e('btn-start-tests').disabled=!this.value.trim(); });
-function startTests(){ rooms[0]=$e('room-name').value.trim(); idx=0; results=[]; _screen('screen-test'); _renderTest(); }
+function startTests(){
+  rooms[0] = $e('room-name').value.trim();
+  idx = 0; results = [];
+  // Show room-transition modal for the FIRST room before starting tests
+  _screen('screen-test');
+  _showRoomTransition(rooms[0], function(){ _renderTest(); });
+}
 
-// ─── RENDER TEST ─────────────────────────────────────────────────────
+// ─── RENDER TEST ──────────────────────────────────────────────────────────────
 function _renderTest() {
   _killTimers();
   _g++;
@@ -274,6 +278,11 @@ function _renderTest() {
   var total = TESTS.length;
   var pct = Math.round(idx/total*100);
   var room = rooms[t.room] || ('Room '+(t.room+1));
+
+  // Replace {room} placeholder and append tap-prompt
+  var instrText = t.instr.replace(/\{room\}/g, room);
+  var tapPrompt = '<br><br><span style="color:#005599">Once it\'s on, tap <strong>' + t.btn + '</strong> below.</span>';
+  var instrFull = instrText + tapPrompt;
 
   var timerBlock = '';
   if (!t.flush) {
@@ -288,12 +297,11 @@ function _renderTest() {
   if (t.flush) {
     flushBlock =
       '<div id="flush-area" style="display:none">' +
-        '<p style="text-align:center;font-size:13px;color:var(--text2);padding:8px 0">Waiting for tank to refill...</p>' +
+        '<p style="text-align:center;font-size:13px;color:var(--text2);padding:6px 0">Waiting for tank to refill...</p>' +
         '<button class="btn btn-primary" onclick="_flushDone()">Tank Refilled &mdash; Continue</button>' +
       '</div>';
   }
 
-  // "Water is Off" button — omitted for flush/noOffBtn tests
   var doneBlock = '';
   if (!t.noOffBtn) {
     doneBlock =
@@ -321,13 +329,13 @@ function _renderTest() {
         '<span style="margin-left:4px;font-size:11px;opacity:.8;color:white">'+room+'</span>' +
       '</div>' +
       '<div class="test-card-body">' +
-        '<div class="instruction-box">'+t.instr+'</div>' +
+        '<div class="instruction-box">'+instrFull+'</div>' +
         timerBlock +
         '<div id="start-chip" style="display:none" class="start-time-chip">' +
           '<div class="dot"></div>' +
           '<div>Started at <strong id="start-val">--</strong></div>' +
         '</div>' +
-        (t.offMsg ? '<div id="off-box" style="display:none" class="off-reminder"><span class="icon">&#x1F534;</span><div>'+t.offMsg+'</div></div>' : '') +
+        (t.offMsg ? '<div id="off-box" style="display:none" class="off-reminder"><span class="icon">&#x1F534;</span><div id="off-msg">'+t.offMsg+'</div></div>' : '') +
         '<div id="act-area">' +
           '<button class="btn btn-success" onclick="_startTest('+g+')">'+t.btn+'</button>' +
         '</div>' +
@@ -338,19 +346,22 @@ function _renderTest() {
         '</div>' +
       '</div>' +
     '</div>' +
-    '<div class="wait-card" id="wait-card" style="display:none">' +
-      '<div class="wait-icon">&#x23F3;</div>' +
-      '<h3>Wait Period</h3>' +
-      '<p>Allow the system to stabilize before the next test.</p>' +
-      '<div style="margin-top:12px">' +
-        '<div class="timer-digits waiting" id="wd" style="font-size:40px">0:05</div>' +
+    // Compact wait card — inline row layout to reduce vertical space
+    '<div class="wait-card-compact" id="wait-card" style="display:none">' +
+      '<div class="wait-compact-inner">' +
+        '<span class="wait-icon-sm">&#x23F3;</span>' +
+        '<div class="wait-compact-text">' +
+          '<strong>Wait Period</strong>' +
+          '<span id="wait-status"> &mdash; stabilizing...</span>' +
+        '</div>' +
+        '<div class="timer-digits waiting" id="wd" style="font-size:28px;min-width:52px;text-align:right">0:05</div>' +
       '</div>' +
-      '<button class="btn btn-outline btn-sm" style="margin-top:16px;width:auto;padding:10px 28px" onclick="_skipWait()">Skip Wait</button>' +
+      '<button class="btn btn-outline btn-sm" style="margin-top:10px;width:auto;align-self:flex-end;padding:8px 20px" onclick="_skipWait()">Skip</button>' +
     '</div>' +
     '<div id="next-area" style="display:none">'+nxtBtn+'</div>';
 }
 
-// ─── TEST STATE MACHINE ───────────────────────────────────────────────
+// ─── TEST STATE MACHINE ───────────────────────────────────────────────────────
 function _startTest(callerG) {
   if (callerG !== _g) return;
   var t = TESTS[idx];
@@ -378,7 +389,6 @@ function _startTest(callerG) {
 
 function _timerDone(g) {
   if (_g !== g) return;
-  // Don't set end time yet — user must tap "Water Off" button
   $t('td','0:00'); $rem('td','running'); $add('td','done');
   $t('tl','Complete!');
   var offBox = $e('off-box'); if(offBox) $show('off-box');
@@ -388,16 +398,22 @@ function _timerDone(g) {
 }
 
 function _flushDone() {
-  // Flush: no off-button needed, record end time immediately on "Tank Refilled"
   results[idx].end = new Date();
   $hide('flush-area');
   _afterOff();
 }
 
 function _confirmOff() {
-  // User tapped "Water Off" — record end time NOW
   results[idx].end = new Date();
   $hide('done-area');
+  // Update off-box message to confirmed state
+  var offMsg = $e('off-msg');
+  if (offMsg) offMsg.innerHTML = '&#x2705; Faucet turned off.';
+  var offBox = $e('off-box');
+  if (offBox) { offBox.style.background='#e0f7ef'; offBox.style.borderColor='#80ddbb'; offBox.style.color='#004422'; }
+  var icon = offBox ? offBox.querySelector('.icon') : null;
+  if (icon) icon.textContent = '';
+  // On the last test, show next-area immediately
   _afterOff();
 }
 
@@ -408,14 +424,43 @@ function _afterOff() {
 
 function _startWait(sec) {
   var rem = sec;
-  $show('wait-card'); $t('wd', mmss(rem));
+  $show('wait-card');
+  $t('wd', mmss(rem));
   var g = _g;
   _wIv = setInterval(function() {
     if (_g !== g) { clearInterval(_wIv); _wIv=null; return; }
     rem--;
     $t('wd', mmss(rem));
-    if (rem <= 0) { clearInterval(_wIv); _wIv=null; $hide('wait-card'); $show('next-area'); }
+    if (rem <= 0) {
+      clearInterval(_wIv); _wIv=null;
+      _waitDone();
+    }
   }, 1000);
+}
+
+function _waitDone() {
+  // Turn card green, swap timer for checkmark, show Continue button
+  var card = $e('wait-card');
+  if (card) {
+    card.style.background = '#e0f7ef';
+    card.style.borderColor = '#80ddbb';
+  }
+  var icon = card ? card.querySelector('.wait-icon-sm') : null;
+  if (icon) icon.textContent = '\u2705';
+  $t('wd', '');
+  var status = $e('wait-status');
+  if (status) status.innerHTML = ' &mdash; ready!';
+  // Replace Skip button with Continue button
+  var card2 = $e('wait-card');
+  if (card2) {
+    var skipBtn = card2.querySelector('button');
+    if (skipBtn) {
+      skipBtn.textContent = 'Continue to Next Test';
+      skipBtn.className = 'btn btn-success btn-sm';
+      skipBtn.style.cssText = 'margin-top:10px;width:100%;padding:12px 20px';
+      skipBtn.onclick = function(){ $hide('wait-card'); $show('next-area'); };
+    }
+  }
 }
 
 function _skipWait() {
@@ -423,7 +468,7 @@ function _skipWait() {
   $hide('wait-card'); $show('next-area');
 }
 
-// ─── CANCEL FLOW ─────────────────────────────────────────────────────
+// ─── CANCEL FLOW ──────────────────────────────────────────────────────────────
 function _cancelModal() {
   if ($e('cancel-modal')) return;
   var ov = document.createElement('div');
@@ -439,7 +484,6 @@ function _cancelModal() {
     '</div>';
   document.body.appendChild(ov);
 }
-
 function _closeModal() { var m=$e('cancel-modal'); if(m) m.remove(); }
 
 function _doCancel() {
@@ -450,10 +494,10 @@ function _doCancel() {
       '<div class="wait-icon">&#x23F3;</div>' +
       '<h3>Test Cancelled</h3>' +
       '<p>Make sure the water is fully off. The test will restart shortly.</p>' +
-      '<div style="margin-top:12px">' +
-        '<div class="timer-digits waiting" id="cwd" style="font-size:40px">0:05</div>' +
+      '<div style="margin-top:8px">' +
+        '<div class="timer-digits waiting" id="cwd" style="font-size:36px">0:05</div>' +
       '</div>' +
-      '<button class="btn btn-outline btn-sm" style="margin-top:16px;width:auto;padding:10px 28px" onclick="_skipCancel()">Skip Wait</button>' +
+      '<button class="btn btn-outline btn-sm" style="margin-top:12px;width:auto;padding:8px 24px" onclick="_skipCancel()">Skip Wait</button>' +
     '</div>';
   var rem = 5;
   $t('cwd', mmss(rem));
@@ -464,22 +508,14 @@ function _doCancel() {
     if (rem <= 0) { clearInterval(_cIv); _cIv=null; _renderTest(); }
   }, 1000);
 }
+function _skipCancel() { if(_cIv!==null){clearInterval(_cIv);_cIv=null;} _renderTest(); }
 
-function _skipCancel() {
-  if (_cIv!==null){ clearInterval(_cIv); _cIv=null; }
-  _renderTest();
-}
-
-// ─── ROOM TRANSITION ─────────────────────────────────────────────────
+// ─── ROOM TRANSITION ──────────────────────────────────────────────────────────
 function _promptRoom() {
   var next = TESTS[idx+1];
   if (!next) { _showReport(); return; }
-
-  // If we already have the room name, skip entry but still show transition msg
   var nextRoomName = rooms[next.room];
-
   if (!nextRoomName) {
-    // Need to ask for room name first, then show transition
     var ov = document.createElement('div');
     ov.id = 'room-overlay';
     ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px';
@@ -496,8 +532,7 @@ function _promptRoom() {
     document.body.appendChild(ov);
     $e('nr-input').addEventListener('input', function(){ $e('nr-btn').disabled=!this.value.trim(); });
   } else {
-    // Already have room name — show transition dialog directly
-    _showRoomTransition(nextRoomName);
+    _showRoomTransition(nextRoomName, function(){ _nextTest(); });
   }
 }
 
@@ -505,10 +540,11 @@ function _saveRoom(ri) {
   var name = $e('nr-input').value.trim();
   rooms[ri] = name;
   var ov=$e('room-overlay'); if(ov) ov.remove();
-  _showRoomTransition(name);
+  _showRoomTransition(name, function(){ _nextTest(); });
 }
 
-function _showRoomTransition(roomName) {
+// callback-based so it works for both the initial room and mid-test transitions
+function _showRoomTransition(roomName, onContinue) {
   var ov = document.createElement('div');
   ov.className = 'modal-overlay'; ov.id = 'room-transition';
   ov.innerHTML =
@@ -516,25 +552,28 @@ function _showRoomTransition(roomName) {
       '<div style="font-size:40px;margin-bottom:12px">&#x1F6B6;</div>' +
       '<h3 style="font-size:19px;margin-bottom:10px">Head to the ' + roomName + '</h3>' +
       '<p style="margin-bottom:24px">Let&#39;s move to the <strong>' + roomName + '</strong> to run the next series of tests. Make sure all water is off before continuing.</p>' +
-      '<button class="btn btn-primary" onclick="_closeRoomTransition()">Continue &rarr;</button>' +
+      '<button class="btn btn-primary" id="room-transition-btn">Continue &rarr;</button>' +
     '</div>';
   document.body.appendChild(ov);
-}
-
-function _closeRoomTransition() {
-  var ov = $e('room-transition'); if(ov) ov.remove();
-  _nextTest();
+  $e('room-transition-btn').addEventListener('click', function(){
+    var o=$e('room-transition'); if(o) o.remove();
+    if (onContinue) onContinue();
+  });
 }
 
 function _nextTest() { idx++; _renderTest(); }
 
-// ─── REPORT ──────────────────────────────────────────────────────────
+// ─── REPORT ───────────────────────────────────────────────────────────────────
 function _showReport() {
   _screen('screen-report');
   var byRoom = {};
   results.forEach(function(r){ var k=r.room; if(!byRoom[k]) byRoom[k]=[]; byRoom[k].push(r); });
   var ds = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   var html =
+    // Email button at very top
+    '<div style="display:flex;flex-direction:column;gap:10px">' +
+      '<button class="btn btn-primary" onclick="_emailReport()">&#x2709; Email Report</button>' +
+    '</div>' +
     '<div class="report-header">' +
       '<div style="font-size:36px;margin-bottom:10px">&#x1F4CB;</div>' +
       '<h2>Test Complete</h2>' +
@@ -561,17 +600,12 @@ function _showReport() {
     });
     html += '</div>';
   });
-  html +=
-    '<div style="display:flex;flex-direction:column;gap:10px">' +
-      '<button class="btn btn-primary" onclick="_emailReport()">&#x2709; Email Report</button>' +
-      '<button class="btn btn-outline" onclick="_restart()">Start New Session</button>' +
-    '</div>';
+  html += '<button class="btn btn-outline" onclick="_restart()">Start New Session</button>';
   $e('report-body').innerHTML = html;
 }
 
-// ─── EMAIL REPORT ────────────────────────────────────────────────────
+// ─── EMAIL REPORT ─────────────────────────────────────────────────────────────
 function _emailReport() {
-  // Build CSV content
   var lines = [
     '"Phyn Water Test Report"',
     '"Conducted by:","' + testerName + '"',
@@ -581,24 +615,15 @@ function _emailReport() {
   ];
   results.forEach(function(r){
     var dur = r.end ? mmss(Math.round((r.end-r.start)/1000)) : '';
-    lines.push(
-      '"'+r.room+'","'+r.t.name+'","'+_hhmmss(r.start)+'","'+(r.end?_hhmmss(r.end):'')+'","'+dur+'"'
-    );
+    lines.push('"'+r.room+'","'+r.t.name+'","'+_hhmmss(r.start)+'","'+(r.end?_hhmmss(r.end):'')+'","'+dur+'"');
   });
   var csv = lines.join('\n');
-
-  // Encode as data URI for mailto body
-  // mailto doesn't support attachments cross-platform, so we embed CSV in body
-  // and instruct the user — this is the most reliable mobile approach
   var subject = encodeURIComponent('Phyn Water Test Report - ' + new Date().toLocaleDateString());
-  var body = encodeURIComponent(
-    'Phyn Water Test Report\nConducted by: ' + testerName + '\n\n' +
-    'Copy the data below and paste into a .csv file:\n\n' + csv
-  );
+  var body = encodeURIComponent('Phyn Water Test Report\nConducted by: ' + testerName + '\n\nCopy the data below and save as a .csv file:\n\n' + csv);
   window.location.href = 'mailto:?subject=' + subject + '&body=' + body;
 }
 
-// ─── RESTART ─────────────────────────────────────────────────────────
+// ─── RESTART ──────────────────────────────────────────────────────────────────
 function _restart() {
   _killTimers(); _g++;
   testerName=''; rooms=['','','Kitchen']; idx=0; results=[];
@@ -607,19 +632,38 @@ function _restart() {
   _screen('screen-welcome');
 }
 
-// ─── AUDIO ───────────────────────────────────────────────────────────
+// ─── AUDIO ────────────────────────────────────────────────────────────────────
+// iOS requires AudioContext to be resumed after a user gesture.
+// We resume it on first user tap so the alarm is never blocked.
+var _audioCtx = null;
+function _getAudioCtx() {
+  if (!_audioCtx) {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (_audioCtx.state === 'suspended') {
+    _audioCtx.resume();
+  }
+  return _audioCtx;
+}
+document.addEventListener('touchstart', function() { _getAudioCtx(); }, {once:true, passive:true});
+document.addEventListener('click',      function() { _getAudioCtx(); }, {once:true, passive:true});
+
 function _playAlarm() {
   try {
-    var ctx = new (window.AudioContext||window.webkitAudioContext)();
-    [523.25,659.25,783.99].forEach(function(freq,i){
-      var osc=ctx.createOscillator(), gain=ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value=freq; osc.type='sine';
-      var t=ctx.currentTime+i*0.18;
-      gain.gain.setValueAtTime(0,t);
-      gain.gain.linearRampToValueAtTime(0.4,t+0.05);
-      gain.gain.exponentialRampToValueAtTime(0.001,t+0.45);
-      osc.start(t); osc.stop(t+0.5);
+    var ctx = _getAudioCtx();
+    // Three-note chime, repeated twice for audibility
+    [0, 0.7].forEach(function(offset) {
+      [523.25, 659.25, 783.99].forEach(function(freq, i) {
+        var osc  = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = freq; osc.type = 'sine';
+        var t = ctx.currentTime + offset + i * 0.22;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.5, t + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+        osc.start(t); osc.stop(t + 0.6);
+      });
     });
   } catch(e) {}
 }
